@@ -42,8 +42,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { FormSubmitToast } from "@/components/form-submit-toast";
 import { Pencil } from "lucide-react";
 import type { SerializedOrder } from "@/lib/serialize-order";
+import { toast } from "sonner";
 
 function formatWhen(iso: string) {
   try {
@@ -69,10 +71,10 @@ function EditOrderForm({
   );
 
   useEffect(() => {
-    if (state?.success) {
-      onSuccess();
-    }
-  }, [state?.success, onSuccess]);
+    if (!state?.success || state.updatedAt == null) return;
+    toast.success("Changes saved");
+    onSuccess();
+  }, [state?.success, state?.updatedAt, onSuccess]);
 
   return (
     <form
@@ -115,12 +117,13 @@ function EditOrderForm({
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor={`details-${order._id}`}>Order details</Label>
+        <Label htmlFor={`details-${order._id}`}>
+          Order details (optional)
+        </Label>
         <Textarea
           id={`details-${order._id}`}
           name="orderDetails"
           defaultValue={order.orderDetails}
-          required
           disabled={pending}
           rows={4}
         />
@@ -175,12 +178,14 @@ export function ArchiveOrderCard({ order }: { order: SerializedOrder }) {
           </p>
         </div>
         <Separator />
-        <div>
-          <p className="font-medium text-foreground">Order details</p>
-          <p className="whitespace-pre-wrap text-muted-foreground">
-            {order.orderDetails}
-          </p>
-        </div>
+        {order.orderDetails.trim() ? (
+          <div>
+            <p className="font-medium text-foreground">Order details</p>
+            <p className="whitespace-pre-wrap text-muted-foreground">
+              {order.orderDetails}
+            </p>
+          </div>
+        ) : null}
         <div>
           <span className="font-medium text-foreground">Price: </span>
           <span>{order.price.toLocaleString()}</span>
@@ -250,6 +255,7 @@ export function ArchiveOrderCard({ order }: { order: SerializedOrder }) {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <form action={deleteOrder} suppressHydrationWarning>
+                <FormSubmitToast message="Order deleted" />
                 <input type="hidden" name="orderId" value={order._id} />
                 <AlertDialogFooter>
                   <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
@@ -272,6 +278,7 @@ export function ArchiveOrderCard({ order }: { order: SerializedOrder }) {
               className="w-full sm:w-auto"
               suppressHydrationWarning
             >
+              <FormSubmitToast message="Parcel queue reopened" />
               <input type="hidden" name="orderId" value={order._id} />
               <Button
                 type="submit"
@@ -287,6 +294,7 @@ export function ArchiveOrderCard({ order }: { order: SerializedOrder }) {
               className="w-full sm:w-auto"
               suppressHydrationWarning
             >
+              <FormSubmitToast message="Pathao queue reopened" />
               <input type="hidden" name="orderId" value={order._id} />
               <Button
                 type="submit"
@@ -302,6 +310,7 @@ export function ArchiveOrderCard({ order }: { order: SerializedOrder }) {
               className="w-full sm:w-auto"
               suppressHydrationWarning
             >
+              <FormSubmitToast message="Both queues reopened" />
               <input type="hidden" name="orderId" value={order._id} />
               <Button
                 type="submit"

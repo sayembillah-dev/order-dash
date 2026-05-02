@@ -24,17 +24,24 @@ function parseImagesJson(json: string | undefined): string[] {
   }
 }
 
+const optionalTrimmedDetails = z.preprocess(
+  (v) => (typeof v === "string" ? v : ""),
+  z.string().transform((s) => s.trim())
+);
+
 const createOrderSchema = z.object({
   customerName: z.string().trim().min(1, "Customer name is required"),
   phone: z.string().trim().min(1, "Phone is required"),
   address: z.string().trim().min(1, "Address is required"),
-  orderDetails: z.string().trim().min(1, "Order details are required"),
+  orderDetails: optionalTrimmedDetails,
   price: z.coerce.number().nonnegative("Price must be zero or positive"),
 });
 
 export type CreateOrderState = {
   error?: string;
   success?: boolean;
+  /** New on each successful submit so client effects can run again */
+  submittedAt?: number;
 };
 
 export async function createOrder(
@@ -70,7 +77,7 @@ export async function createOrder(
   revalidatePath("/parcel");
   revalidatePath("/entry");
 
-  return { success: true };
+  return { success: true, submittedAt: Date.now() };
 }
 
 export async function completeParcelCreation(formData: FormData): Promise<void> {
@@ -96,11 +103,15 @@ const updateArchiveSchema = z.object({
   customerName: z.string().trim().min(1),
   phone: z.string().trim().min(1),
   address: z.string().trim().min(1),
-  orderDetails: z.string().trim().min(1),
+  orderDetails: optionalTrimmedDetails,
   price: z.coerce.number().nonnegative(),
 });
 
-export type UpdateArchiveState = { error?: string; success?: boolean };
+export type UpdateArchiveState = {
+  error?: string;
+  success?: boolean;
+  updatedAt?: number;
+};
 
 export async function updateArchivedOrder(
   _prev: UpdateArchiveState | undefined,
@@ -138,7 +149,7 @@ export async function updateArchivedOrder(
   });
 
   revalidatePath("/archive");
-  return { success: true };
+  return { success: true, updatedAt: Date.now() };
 }
 
 export async function deleteOrder(formData: FormData): Promise<void> {
