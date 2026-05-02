@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Order Dash
 
-## Getting Started
+State management dashboard for order intake, parcel creation, Pathao entry, and a **ready-to-ship** archive. Each order has two independent completion flags so teams can work in any order without blocking each other.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Order intake** (`/intake`) — Create orders with customer fields, price, and optional photos (Cloudinary unsigned uploads).
+- **Parcel creation** (`/parcel`) — Queue: `parcelCreationDone === false`.
+- **Pathao entry** (`/entry`) — Queue: `pathaoEntryDone === false`.
+- **Archive** (`/archive`) — Both flags true (“ready to ship”). Full edit/delete plus **reopen** actions to fix mistaken completions.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Authentication is a single shared username/password from the environment (HTTP-only signed session cookie).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [Next.js](https://nextjs.org/) 16 (App Router)
+- [MongoDB](https://www.mongodb.com/) via Mongoose (Atlas-ready)
+- [Cloudinary](https://cloudinary.com/) unsigned uploads from the browser
+- [shadcn/ui](https://ui.shadcn.com/) + Tailwind CSS 4
 
-## Learn More
+## Setup
 
-To learn more about Next.js, take a look at the following resources:
+1. **Clone and install**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm install
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Environment**
 
-## Deploy on Vercel
+   Copy `.env.example` to `.env.local` and fill in:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   | Variable | Purpose |
+   |----------|---------|
+   | `MONGODB_URI` | MongoDB connection string (e.g. Atlas) |
+   | `AUTH_USERNAME` / `AUTH_PASSWORD` | Dashboard login |
+   | `AUTH_SECRET` | Long random string used to sign the session cookie (min 16 chars) |
+   | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+   | `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | Unsigned upload preset name |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Cloudinary**
+
+   In the Cloudinary console, enable unsigned uploads for the preset used above (folder `order-dash` is sent from the app but optional on the preset).
+
+4. **Run**
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000). Unauthenticated users are sent to `/login`; after login, `/intake` is the default workspace.
+
+## Production notes
+
+- Serve over HTTPS so secure cookies work as intended (`NODE_ENV=production`).
+- Restrict who can reach the app; credentials are plain env vars suitable for a small trusted team.
+- Consider rate-limiting `/login` behind your reverse proxy or edge firewall.
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | ESLint |
