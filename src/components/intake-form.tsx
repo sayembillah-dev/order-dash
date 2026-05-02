@@ -4,10 +4,12 @@ import Image from "next/image";
 import type { Dispatch, SetStateAction } from "react";
 import { useActionState, useEffect, useState } from "react";
 import type { createOrder, CreateOrderState } from "@/app/actions/orders";
+import { useLazyMode } from "@/components/lazy-mode-provider";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { convertImageFileToJpeg } from "@/lib/convert-image-to-jpeg";
 import {
   clearIntakeDraftStorage,
   emptyIntakeDraft,
@@ -15,7 +17,7 @@ import {
   type IntakeDraft,
 } from "@/lib/intake-draft";
 import { cn } from "@/lib/utils";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 /** iOS/Android often leave MIME empty or use octet-stream for camera/library picks */
@@ -87,6 +89,7 @@ export function IntakeForm({
   draft: IntakeDraft;
   setDraft: Dispatch<SetStateAction<IntakeDraft>>;
 }) {
+  const { lazyMode } = useLazyMode();
   const [state, formAction, pending] = useActionState(
     action,
     {} as CreateOrderState,
@@ -120,11 +123,14 @@ export function IntakeForm({
           );
           continue;
         }
-        if (file.size > 8 * 1024 * 1024) {
-          setUploadError("Each image must be 8MB or smaller.");
+        const jpegFile = await convertImageFileToJpeg(file);
+        if (jpegFile.size > 8 * 1024 * 1024) {
+          setUploadError(
+            "Each photo must be 8MB or smaller after converting to JPEG.",
+          );
           continue;
         }
-        const url = await uploadToCloudinary(file);
+        const url = await uploadToCloudinary(jpegFile);
         next.push(url);
       }
       setDraft((d) => ({ ...d, images: next }));
@@ -133,6 +139,19 @@ export function IntakeForm({
     } finally {
       setUploading(false);
     }
+  }
+
+  function removeImageAt(index: number) {
+    setUploadError(null);
+    setDraft((d) => ({
+      ...d,
+      images: d.images.filter((_, i) => i !== index),
+    }));
+  }
+
+  function clearAllImages() {
+    setUploadError(null);
+    setDraft((d) => ({ ...d, images: [] }));
   }
 
   return (
@@ -157,88 +176,138 @@ export function IntakeForm({
           name="imagesJson"
           value={JSON.stringify(draft.images)}
         />
+        <input type="hidden" name="lazyMode" value={lazyMode ? "1" : "0"} />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor="customerName">Customer name</Label>
-            <Input
-              id="customerName"
-              name="customerName"
-              required
-              disabled={pending}
-              autoComplete="name"
-              value={draft.customerName}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, customerName: e.target.value }))
-              }
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              required
-              disabled={pending}
-              value={draft.phone}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, phone: e.target.value }))
-              }
-            />
-          </div>
-        </div>
+        {lazyMode ? (
+          <>
+            <input type="hidden" name="customerName" value="" />
+            <input type="hidden" name="phone" value="" />
+            <input type="hidden" name="address" value="" />
+            <input type="hidden" name="price" value="0" />
+
+            <div className="grid gap-2">
+              <Label htmlFor="orderDetails">Order description</Label>
+              <Textarea
+                id="orderDetails"
+                name="orderDetails"
+                required
+                disabled={pending}
+                rows={5}
+                value={draft.orderDetails}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, orderDetails: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="note">Note</Label>
+              <Textarea
+                id="note"
+                name="note"
+                required
+                disabled={pending}
+                rows={4}
+                value={draft.note}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, note: e.target.value }))
+                }
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <input type="hidden" name="note" value="" />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="customerName">Customer name</Label>
+                <Input
+                  id="customerName"
+                  name="customerName"
+                  required
+                  disabled={pending}
+                  autoComplete="name"
+                  value={draft.customerName}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, customerName: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  required
+                  disabled={pending}
+                  value={draft.phone}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, phone: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="address">Address</Label>
+              <Textarea
+                id="address"
+                name="address"
+                required
+                disabled={pending}
+                rows={3}
+                value={draft.address}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, address: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="orderDetails">Order details (optional)</Label>
+              <Textarea
+                id="orderDetails"
+                name="orderDetails"
+                disabled={pending}
+                rows={4}
+                value={draft.orderDetails}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, orderDetails: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="grid gap-2 sm:max-w-xs">
+              <Label htmlFor="price">Price</Label>
+              <Input
+                id="price"
+                name="price"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                required
+                disabled={pending}
+                value={draft.price}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, price: e.target.value }))
+                }
+              />
+            </div>
+          </>
+        )}
 
         <div className="grid gap-2">
-          <Label htmlFor="address">Address</Label>
-          <Textarea
-            id="address"
-            name="address"
-            required
-            disabled={pending}
-            rows={3}
-            value={draft.address}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, address: e.target.value }))
-            }
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="orderDetails">Order details (optional)</Label>
-          <Textarea
-            id="orderDetails"
-            name="orderDetails"
-            disabled={pending}
-            rows={4}
-            value={draft.orderDetails}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, orderDetails: e.target.value }))
-            }
-          />
-        </div>
-
-        <div className="grid gap-2 sm:max-w-xs">
-          <Label htmlFor="price">Price</Label>
-          <Input
-            id="price"
-            name="price"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            required
-            disabled={pending}
-            value={draft.price}
-            onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <Label>Photos (optional)</Label>
+          <Label>
+            Photos {lazyMode ? "(required)" : "(optional)"}
+          </Label>
           <p className="text-xs text-muted-foreground">
             Tap the shaded area — your tap goes straight to the file picker
-            (best compatibility on iPhone and Android).
+            (best compatibility on iPhone and Android). Photos are converted to
+            JPEG (including HEIC from iPhone) before upload; max 8MB per photo
+            after conversion.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             {/* Invisible file input on top so taps hit the native input (fixes many mobile WebKit bugs). */}
@@ -280,22 +349,51 @@ export function IntakeForm({
             <span className="text-sm text-muted-foreground">
               {draft.images.length} image(s) attached
             </span>
+            {draft.images.length > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto min-h-9 px-2 text-muted-foreground"
+                disabled={pending || uploading}
+                onClick={clearAllImages}
+              >
+                Remove all photos
+              </Button>
+            ) : null}
           </div>
           {uploadError ? (
             <p className="text-sm text-destructive">{uploadError}</p>
           ) : null}
           {draft.images.length > 0 ? (
-            <ul className="flex flex-wrap gap-2 pt-1">
-              {draft.images.map((url) => (
-                <li key={url} className="relative">
+            <ul className="flex flex-wrap gap-3 pt-1">
+              {draft.images.map((url, index) => (
+                <li
+                  key={`${index}-${url}`}
+                  className="relative inline-block touch-manipulation"
+                >
                   <Image
                     src={url}
                     alt=""
                     width={64}
                     height={64}
                     unoptimized
-                    className="rounded-md border object-cover"
+                    className="size-16 rounded-md border object-cover sm:size-20"
                   />
+                  <button
+                    type="button"
+                    disabled={pending || uploading}
+                    onClick={() => removeImageAt(index)}
+                    className={cn(
+                      "absolute -right-1.5 -top-1.5 flex size-8 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm",
+                      "transition-colors hover:bg-destructive/10 hover:text-destructive",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      (pending || uploading) && "pointer-events-none opacity-50",
+                    )}
+                    aria-label={`Remove photo ${index + 1}`}
+                  >
+                    <X className="size-4" aria-hidden />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -304,7 +402,11 @@ export function IntakeForm({
 
         <Button
           type="submit"
-          disabled={pending || uploading}
+          disabled={
+            pending ||
+            uploading ||
+            (lazyMode && draft.images.length === 0)
+          }
           className="min-h-11 w-full touch-manipulation text-base"
           size="lg"
         >

@@ -37,6 +37,11 @@ const createOrderSchema = z.object({
   price: z.coerce.number().nonnegative("Price must be zero or positive"),
 });
 
+const lazyCreateOrderSchema = z.object({
+  orderDetails: z.string().trim().min(1, "Order description is required"),
+  note: z.string().trim().min(1, "Note is required"),
+});
+
 export type CreateOrderState = {
   error?: string;
   success?: boolean;
@@ -51,6 +56,47 @@ export async function createOrder(
   await requireAuth();
 
   const imagesJson = String(formData.get("imagesJson") ?? "");
+  const images = parseImagesJson(imagesJson);
+  const lazyRaw = String(formData.get("lazyMode") ?? "").toLowerCase();
+  const lazySubmit = lazyRaw === "1" || lazyRaw === "true" || lazyRaw === "on";
+
+  if (lazySubmit) {
+    const parsed = lazyCreateOrderSchema.safeParse({
+      orderDetails: formData.get("orderDetails"),
+      note: formData.get("note"),
+    });
+
+    if (!parsed.success) {
+      const first = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
+      return { error: first ?? "Invalid form data" };
+    }
+
+    if (images.length === 0) {
+      return {
+        error: "Lazy mode requires at least one photo.",
+      };
+    }
+
+    await connectDB();
+    await Order.create({
+      customerName: "",
+      phone: "",
+      address: "",
+      orderDetails: parsed.data.orderDetails,
+      note: parsed.data.note,
+      price: 0,
+      pathaoEntryDone: false,
+      parcelCreationDone: false,
+      images,
+      lazySubmission: true,
+    });
+
+    revalidatePath("/parcel");
+    revalidatePath("/entry");
+
+    return { success: true, submittedAt: Date.now() };
+  }
+
   const parsed = createOrderSchema.safeParse({
     customerName: formData.get("customerName"),
     phone: formData.get("phone"),
@@ -64,13 +110,13 @@ export async function createOrder(
     return { error: first ?? "Invalid form data" };
   }
 
-  const images = parseImagesJson(imagesJson);
-
   await connectDB();
   await Order.create({
     ...parsed.data,
+    note: "",
     pathaoEntryDone: false,
     parcelCreationDone: false,
+    lazySubmission: false,
     images,
   });
 
@@ -104,6 +150,7 @@ const updateArchiveSchema = z.object({
   phone: z.string().trim().min(1),
   address: z.string().trim().min(1),
   orderDetails: optionalTrimmedDetails,
+  note: optionalTrimmedDetails,
   price: z.coerce.number().nonnegative(),
 });
 
@@ -125,6 +172,7 @@ export async function updateArchivedOrder(
     phone: formData.get("phone"),
     address: formData.get("address"),
     orderDetails: formData.get("orderDetails"),
+    note: formData.get("note"),
     price: formData.get("price"),
   });
 
@@ -145,6 +193,7 @@ export async function updateArchivedOrder(
     phone: parsed.data.phone,
     address: parsed.data.address,
     orderDetails: parsed.data.orderDetails,
+    note: parsed.data.note,
     price: parsed.data.price,
   });
 

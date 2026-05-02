@@ -7,6 +7,7 @@ export type IntakeDraft = {
   phone: string;
   address: string;
   orderDetails: string;
+  note: string;
   /** String so the price input stays controlled without NaN flicker */
   price: string;
   images: string[];
@@ -18,6 +19,7 @@ export function emptyIntakeDraft(): IntakeDraft {
     phone: "",
     address: "",
     orderDetails: "",
+    note: "",
     price: "",
     images: [],
   };
@@ -35,6 +37,7 @@ export function loadIntakeDraft(): IntakeDraft {
       address: typeof p.address === "string" ? p.address : "",
       orderDetails:
         typeof p.orderDetails === "string" ? p.orderDetails : "",
+      note: typeof p.note === "string" ? p.note : "",
       price: typeof p.price === "string" ? p.price : "",
       images: Array.isArray(p.images)
         ? p.images.filter((u): u is string => typeof u === "string")

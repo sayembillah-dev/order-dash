@@ -2,16 +2,20 @@ import mongoose, { Schema, type InferSchemaType } from "mongoose";
 
 const OrderSchema = new Schema(
   {
-    customerName: { type: String, required: true, trim: true },
-    phone: { type: String, required: true, trim: true },
-    address: { type: String, required: true, trim: true },
+    customerName: { type: String, default: "", trim: true },
+    phone: { type: String, default: "", trim: true },
+    address: { type: String, default: "", trim: true },
     orderDetails: {
       type: String,
       required: false,
       default: "",
       trim: true,
     },
+    /** Extra note (used heavily in Lazy mode intake) */
+    note: { type: String, default: "", trim: true },
     price: { type: Number, required: true, min: 0 },
+    /** Created via Lazy mode (minimal fields); helps display/copy when settings toggle is off */
+    lazySubmission: { type: Boolean, default: false },
     /** Pathao / digital entry completed */
     pathaoEntryDone: { type: Boolean, default: false },
     /** Physical parcel creation completed */

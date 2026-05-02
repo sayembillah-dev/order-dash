@@ -43,7 +43,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { FormSubmitToast } from "@/components/form-submit-toast";
+import { useLazyMode } from "@/components/lazy-mode-provider";
 import { Pencil } from "lucide-react";
+import { shouldShowLazyOrderView } from "@/lib/order-view";
 import type { SerializedOrder } from "@/lib/serialize-order";
 import { toast } from "sonner";
 
@@ -128,6 +130,16 @@ function EditOrderForm({
           rows={4}
         />
       </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`note-${order._id}`}>Note (optional)</Label>
+        <Textarea
+          id={`note-${order._id}`}
+          name="note"
+          defaultValue={order.note}
+          disabled={pending}
+          rows={3}
+        />
+      </div>
       <div className="grid max-w-xs gap-2">
         <Label htmlFor={`price-${order._id}`}>Price</Label>
         <Input
@@ -156,36 +168,98 @@ function EditOrderForm({
 }
 
 export function ArchiveOrderCard({ order }: { order: SerializedOrder }) {
+  const { lazyMode } = useLazyMode();
+  const lazyView = shouldShowLazyOrderView(lazyMode, order);
   const [editOpen, setEditOpen] = useState(false);
   const closeEdit = useCallback(() => setEditOpen(false), []);
+
+  const title =
+    lazyView && !order.customerName.trim()
+      ? order.orderDetails.trim().slice(0, 72) || "Order"
+      : order.customerName.trim() || "—";
 
   return (
     <Card className="flex flex-col">
       <CardHeader className="space-y-2 pb-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <CardTitle className="min-w-0 break-words text-lg leading-snug">
-            {order.customerName}
+            {title}
           </CardTitle>
           <Badge variant="secondary">{formatWhen(order.createdAt)}</Badge>
         </div>
-        <p className="text-sm text-muted-foreground">{order.phone}</p>
+        {lazyView ? (
+          order.phone.trim() ? (
+            <p className="text-sm text-muted-foreground">{order.phone}</p>
+          ) : null
+        ) : (
+          <p className="text-sm text-muted-foreground">{order.phone}</p>
+        )}
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3 text-sm">
-        <div>
-          <p className="font-medium text-foreground">Address</p>
-          <p className="whitespace-pre-wrap text-muted-foreground">
-            {order.address}
-          </p>
-        </div>
-        <Separator />
-        {order.orderDetails.trim() ? (
-          <div>
-            <p className="font-medium text-foreground">Order details</p>
-            <p className="whitespace-pre-wrap text-muted-foreground">
-              {order.orderDetails}
-            </p>
-          </div>
-        ) : null}
+        {lazyView ? (
+          <>
+            <div>
+              <p className="font-medium text-foreground">Order description</p>
+              <p className="whitespace-pre-wrap text-muted-foreground">
+                {order.orderDetails.trim() ? order.orderDetails : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Note</p>
+              <p className="whitespace-pre-wrap text-muted-foreground">
+                {order.note.trim() ? order.note : "—"}
+              </p>
+            </div>
+            {order.customerName.trim() ? (
+              <div>
+                <p className="font-medium text-foreground">Name</p>
+                <p className="text-muted-foreground">{order.customerName}</p>
+              </div>
+            ) : null}
+            {order.phone.trim() ? (
+              <div>
+                <p className="font-medium text-foreground">Phone</p>
+                <p className="tabular-nums text-muted-foreground">
+                  {order.phone}
+                </p>
+              </div>
+            ) : null}
+            {order.address.trim() ? (
+              <div>
+                <p className="font-medium text-foreground">Address</p>
+                <p className="whitespace-pre-wrap text-muted-foreground">
+                  {order.address}
+                </p>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <div>
+              <p className="font-medium text-foreground">Address</p>
+              <p className="whitespace-pre-wrap text-muted-foreground">
+                {order.address}
+              </p>
+            </div>
+            <Separator />
+            {order.orderDetails.trim() ? (
+              <div>
+                <p className="font-medium text-foreground">Order details</p>
+                <p className="whitespace-pre-wrap text-muted-foreground">
+                  {order.orderDetails}
+                </p>
+              </div>
+            ) : null}
+            {order.note.trim() ? (
+              <div>
+                <p className="font-medium text-foreground">Note</p>
+                <p className="whitespace-pre-wrap text-muted-foreground">
+                  {order.note}
+                </p>
+              </div>
+            ) : null}
+          </>
+        )}
         <div>
           <span className="font-medium text-foreground">Price: </span>
           <span>{order.price.toLocaleString()}</span>

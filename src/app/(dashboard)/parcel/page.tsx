@@ -1,4 +1,5 @@
 import { OrderQueueCard } from "@/components/order-queue-card";
+import { PageRefreshButton } from "@/components/page-refresh-button";
 import { PendingQueueSummary } from "@/components/pending-queue-summary";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/lib/models/Order";
@@ -18,9 +19,12 @@ export default async function ParcelPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-balance text-2xl font-semibold tracking-tight">
-        Parcel creation
-      </h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h1 className="text-balance text-2xl font-semibold tracking-tight">
+          Parcel creation
+        </h1>
+        <PageRefreshButton />
+      </div>
 
       <PendingQueueSummary page="parcel" pending={orders.length} />
 

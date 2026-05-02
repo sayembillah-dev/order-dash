@@ -17,7 +17,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const protectedPrefixes = ["/intake", "/parcel", "/entry", "/archive"];
+  const protectedPrefixes = [
+    "/intake",
+    "/parcel",
+    "/entry",
+    "/archive",
+    "/settings",
+  ];
   const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
 
   if (!isProtected) {
@@ -51,9 +57,11 @@ export const config = {
     "/parcel",
     "/entry",
     "/archive",
+    "/settings",
     "/intake/:path*",
     "/parcel/:path*",
     "/entry/:path*",
     "/archive/:path*",
+    "/settings/:path*",
   ],
 };

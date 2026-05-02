@@ -21,6 +21,7 @@ const links = [
   { href: "/parcel", label: "Parcel creation" },
   { href: "/entry", label: "Pathao entry" },
   { href: "/archive", label: "Archive" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 export function DashboardNav() {

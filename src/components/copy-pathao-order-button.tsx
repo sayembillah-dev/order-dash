@@ -1,22 +1,46 @@
 "use client";
 
 import { useCallback } from "react";
+import { useLazyMode } from "@/components/lazy-mode-provider";
 import { Button } from "@/components/ui/button";
+import { shouldShowLazyOrderView } from "@/lib/order-view";
 import type { SerializedOrder } from "@/lib/serialize-order";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
 
 /** One line per field for clipboard paste; collapses internal line breaks. */
-function buildPathaoCopyText(order: SerializedOrder): string {
+function buildPathaoCopyText(
+  order: SerializedOrder,
+  lazyCopy: boolean
+): string {
   const single = (s: string) => s.trim().replace(/\s+/g, " ");
+
+  if (lazyCopy) {
+    const lines: string[] = [];
+    const desc = single(order.orderDetails);
+    const note = single(order.note ?? "");
+    if (desc) lines.push(desc);
+    if (note) lines.push(`Note: ${note}`);
+    const name = single(order.customerName);
+    const phone = single(order.phone);
+    const addr = single(order.address);
+    if (name) lines.push(name);
+    if (phone) lines.push(phone);
+    if (addr) lines.push(addr);
+    if (order.price > 0) lines.push(order.price.toLocaleString());
+    return lines.join("\n");
+  }
+
   const lines = [
     single(order.customerName),
     single(order.phone),
     single(order.address),
     order.price.toLocaleString(),
   ];
-  const note = single(order.orderDetails);
-  if (note) lines.push(note);
+  const details = single(order.orderDetails);
+  if (details) lines.push(details);
+  const noteOnly = single(order.note ?? "");
+  if (noteOnly) lines.push(`Note: ${noteOnly}`);
   return lines.join("\n");
 }
 
@@ -53,15 +77,18 @@ function fallbackExecCopy(text: string): boolean {
 }
 
 export function CopyPathaoOrderButton({ order }: { order: SerializedOrder }) {
+  const { lazyMode } = useLazyMode();
+  const lazyCopy = shouldShowLazyOrderView(lazyMode, order);
+
   const handleCopy = useCallback(async () => {
-    const text = buildPathaoCopyText(order);
+    const text = buildPathaoCopyText(order, lazyCopy);
     const ok = await writeClipboard(text);
     if (ok) {
       toast.success("Copied to clipboard");
     } else {
       toast.error("Could not copy");
     }
-  }, [order]);
+  }, [order, lazyCopy]);
 
   return (
     <Button
