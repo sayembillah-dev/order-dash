@@ -95,6 +95,7 @@ export async function createOrder(
 
     revalidatePath("/parcel");
     revalidatePath("/entry");
+    revalidatePath("/intake");
 
     return { success: true, submittedAt: Date.now() };
   }
@@ -124,8 +125,113 @@ export async function createOrder(
 
   revalidatePath("/parcel");
   revalidatePath("/entry");
+  revalidatePath("/intake");
 
   return { success: true, submittedAt: Date.now() };
+}
+
+/**
+ * Update fields for orders still in the workflow (not ready-to-ship).
+ * Lazy orders must be edited with lazy payload; full orders with full payload.
+ */
+export async function updateWorkflowOrder(
+  _prev: CreateOrderState | undefined,
+  formData: FormData,
+): Promise<CreateOrderState> {
+  await requireAuth();
+
+  const orderId = orderIdSchema.parse(String(formData.get("orderId") ?? ""));
+  const imagesJson = String(formData.get("imagesJson") ?? "");
+  const images = parseImagesJson(imagesJson);
+  const lazyRaw = String(formData.get("lazyMode") ?? "").toLowerCase();
+  const lazySubmit =
+    lazyRaw === "1" || lazyRaw === "true" || lazyRaw === "on";
+
+  await connectDB();
+  const existing = await Order.findById(orderId).exec();
+  if (!existing) return { error: "Order not found" };
+  if (existing.pathaoEntryDone && existing.parcelCreationDone) {
+    return {
+      error: "This order is ready to ship. Edit it from the archive.",
+    };
+  }
+
+  if (lazySubmit) {
+    if (!existing.lazySubmission) {
+      return {
+        error:
+          "This order uses full customer fields. Edit it with the full form (lazy mode off).",
+      };
+    }
+    const parsed = lazyCreateOrderSchema.safeParse({
+      orderDetails: formData.get("orderDetails"),
+      note: formData.get("note"),
+    });
+
+    if (!parsed.success) {
+      const first = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
+      return { error: first ?? "Invalid form data" };
+    }
+
+    if (images.length === 0) {
+      return {
+        error: "Lazy mode requires at least one photo.",
+      };
+    }
+
+    await Order.findByIdAndUpdate(orderId, {
+      orderDetails: parsed.data.orderDetails,
+      note: parsed.data.note,
+      images,
+    });
+  } else {
+    if (existing.lazySubmission) {
+      return {
+        error:
+          "This order was created in lazy mode. Turn on lazy mode on Order intake to edit it there.",
+      };
+    }
+    const parsed = createOrderSchema.safeParse({
+      customerName: formData.get("customerName"),
+      phone: formData.get("phone"),
+      address: formData.get("address"),
+      orderDetails: formData.get("orderDetails"),
+      price: formData.get("price"),
+    });
+
+    if (!parsed.success) {
+      const first = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
+      return { error: first ?? "Invalid form data" };
+    }
+
+    await Order.findByIdAndUpdate(orderId, {
+      ...parsed.data,
+      note: "",
+      images,
+    });
+  }
+
+  revalidatePath("/intake");
+  revalidatePath("/parcel");
+  revalidatePath("/entry");
+  revalidatePath("/archive");
+
+  return { success: true, submittedAt: Date.now() };
+}
+
+export async function submitIntakeOrder(
+  _prev: CreateOrderState | undefined,
+  formData: FormData,
+): Promise<CreateOrderState> {
+  const rawOrderId = String(formData.get("orderId") ?? "").trim();
+  if (rawOrderId) {
+    const idParsed = orderIdSchema.safeParse(rawOrderId);
+    if (!idParsed.success) {
+      return { error: "Invalid order id" };
+    }
+    return updateWorkflowOrder(_prev, formData);
+  }
+  return createOrder(_prev, formData);
 }
 
 export async function completeParcelCreation(formData: FormData): Promise<void> {
@@ -136,6 +242,7 @@ export async function completeParcelCreation(formData: FormData): Promise<void> 
     parcelCreationDone: true,
     parcelCreationCompletedAt: new Date(),
   });
+  revalidatePath("/intake");
   revalidatePath("/parcel");
   revalidatePath("/archive");
 }
@@ -148,6 +255,7 @@ export async function completePathaoEntry(formData: FormData): Promise<void> {
     pathaoEntryDone: true,
     pathaoEntryCompletedAt: new Date(),
   });
+  revalidatePath("/intake");
   revalidatePath("/entry");
   revalidatePath("/archive");
 }
@@ -214,6 +322,7 @@ export async function deleteOrder(formData: FormData): Promise<void> {
   const id = orderIdSchema.parse(String(formData.get("orderId") ?? ""));
   await connectDB();
   await Order.findByIdAndDelete(id);
+  revalidatePath("/intake");
   revalidatePath("/parcel");
   revalidatePath("/entry");
   revalidatePath("/archive");
@@ -227,6 +336,7 @@ export async function reopenParcelStep(formData: FormData): Promise<void> {
     $set: { parcelCreationDone: false },
     $unset: { parcelCreationCompletedAt: "" },
   });
+  revalidatePath("/intake");
   revalidatePath("/parcel");
   revalidatePath("/archive");
 }
@@ -239,6 +349,7 @@ export async function reopenPathaoStep(formData: FormData): Promise<void> {
     $set: { pathaoEntryDone: false },
     $unset: { pathaoEntryCompletedAt: "" },
   });
+  revalidatePath("/intake");
   revalidatePath("/entry");
   revalidatePath("/archive");
 }
@@ -257,6 +368,7 @@ export async function reopenBothSteps(formData: FormData): Promise<void> {
       parcelCreationCompletedAt: "",
     },
   });
+  revalidatePath("/intake");
   revalidatePath("/parcel");
   revalidatePath("/entry");
   revalidatePath("/archive");

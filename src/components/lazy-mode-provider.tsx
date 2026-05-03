@@ -24,7 +24,7 @@ export function LazyModeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const v = localStorage.getItem(STORAGE_KEY);
-      setLazyModeState(v === "1");
+      queueMicrotask(() => setLazyModeState(v === "1"));
     } catch {
       /* ignore */
     }

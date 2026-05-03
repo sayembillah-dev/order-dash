@@ -11,6 +11,9 @@ export type SerializedOrder = {
   pathaoEntryDone: boolean;
   parcelCreationDone: boolean;
   lazySubmission: boolean;
+  pathaoConsignmentId?: string;
+  pathaoDeliveryFee?: number;
+  pathaoBulkAcceptedAt?: string;
 };
 
 /** Accepts Mongoose lean docs or plain objects from queries */
@@ -27,6 +30,9 @@ export function serializeOrder(doc: {
   pathaoEntryDone?: boolean;
   parcelCreationDone?: boolean;
   lazySubmission?: boolean;
+  pathaoConsignmentId?: string;
+  pathaoDeliveryFee?: number;
+  pathaoBulkAcceptedAt?: Date | string;
 }): SerializedOrder {
   const created =
     doc.createdAt instanceof Date
@@ -34,6 +40,14 @@ export function serializeOrder(doc: {
       : typeof doc.createdAt === "string"
         ? doc.createdAt
         : "";
+
+  const bulkAt = doc.pathaoBulkAcceptedAt;
+  const bulkIso =
+    bulkAt instanceof Date
+      ? bulkAt.toISOString()
+      : typeof bulkAt === "string"
+        ? bulkAt
+        : undefined;
 
   return {
     _id: String(doc._id),
@@ -48,5 +62,11 @@ export function serializeOrder(doc: {
     pathaoEntryDone: Boolean(doc.pathaoEntryDone),
     parcelCreationDone: Boolean(doc.parcelCreationDone),
     lazySubmission: Boolean(doc.lazySubmission),
+    pathaoConsignmentId: doc.pathaoConsignmentId?.trim()
+      ? doc.pathaoConsignmentId.trim()
+      : undefined,
+    pathaoDeliveryFee:
+      typeof doc.pathaoDeliveryFee === "number" ? doc.pathaoDeliveryFee : undefined,
+    pathaoBulkAcceptedAt: bulkIso,
   };
 }

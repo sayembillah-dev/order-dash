@@ -48,7 +48,7 @@ export function QueueTodayHistoryDialog({
 
   useEffect(() => {
     if (!open) return;
-    void load();
+    queueMicrotask(() => void load());
   }, [open, load]);
 
   const title =

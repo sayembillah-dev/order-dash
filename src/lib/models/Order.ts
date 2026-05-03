@@ -25,6 +25,12 @@ const OrderSchema = new Schema(
     /** When parcel step was marked complete */
     parcelCreationCompletedAt: { type: Date, required: false },
     images: { type: [String], default: [] },
+    /** Pathao consignment id after successful single-order API create */
+    pathaoConsignmentId: { type: String, trim: true, required: false },
+    /** Delivery fee returned by Pathao create order */
+    pathaoDeliveryFee: { type: Number, required: false },
+    /** Set when order was submitted via Pathao bulk API (async processing) */
+    pathaoBulkAcceptedAt: { type: Date, required: false },
   },
   { timestamps: true }
 );

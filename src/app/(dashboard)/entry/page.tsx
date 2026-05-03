@@ -1,4 +1,4 @@
-import { OrderQueueCard } from "@/components/order-queue-card";
+import { EntryPageClient } from "@/components/entry-page-client";
 import { PageRefreshButton } from "@/components/page-refresh-button";
 import { PendingQueueSummary } from "@/components/pending-queue-summary";
 import { connectDB } from "@/lib/mongodb";
@@ -33,13 +33,7 @@ export default async function EntryPage() {
           No pending Pathao entries.
         </p>
       ) : (
-        <ul className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-          {orders.map((order) => (
-            <li key={order._id}>
-              <OrderQueueCard order={order} variant="entry" />
-            </li>
-          ))}
-        </ul>
+        <EntryPageClient orders={orders} />
       )}
     </div>
   );

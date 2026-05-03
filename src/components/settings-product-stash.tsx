@@ -28,7 +28,7 @@ export function SettingsProductStash() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setItems(loadProductStash());
+    queueMicrotask(() => setItems(loadProductStash()));
   }, []);
 
   const persist = useCallback((next: ProductStashItem[]) => {

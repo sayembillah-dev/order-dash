@@ -3,7 +3,10 @@
 import Image from "next/image";
 import type { Dispatch, SetStateAction } from "react";
 import { useActionState, useEffect, useState } from "react";
-import type { createOrder, CreateOrderState } from "@/app/actions/orders";
+import {
+  submitIntakeOrder,
+  type CreateOrderState,
+} from "@/app/actions/orders";
 import { useLazyMode } from "@/components/lazy-mode-provider";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,12 +39,23 @@ export function IntakeForm({
   action,
   draft,
   setDraft,
+  editingOrderId = null,
+  editingLazySubmission = false,
+  onClearEdit,
 }: {
-  action: typeof createOrder;
+  action: typeof submitIntakeOrder;
   draft: IntakeDraft;
   setDraft: Dispatch<SetStateAction<IntakeDraft>>;
+  /** When set, form updates an existing workflow order instead of creating one */
+  editingOrderId?: string | null;
+  /** From the order being edited; controls lazy vs full fields when editing */
+  editingLazySubmission?: boolean;
+  onClearEdit?: () => void;
 }) {
   const { lazyMode } = useLazyMode();
+  const effectiveLazy = editingOrderId
+    ? Boolean(editingLazySubmission)
+    : lazyMode;
   const [state, formAction, pending] = useActionState(
     action,
     {} as CreateOrderState,
@@ -51,10 +65,14 @@ export function IntakeForm({
 
   useEffect(() => {
     if (state?.submittedAt == null) return;
-    toast.success("Order submitted");
-    clearIntakeDraftStorage();
-    setDraft(emptyIntakeDraft());
-  }, [state?.submittedAt, setDraft]);
+    if (editingOrderId) {
+      toast.success("Order updated");
+    } else {
+      toast.success("Order submitted");
+      clearIntakeDraftStorage();
+      setDraft(emptyIntakeDraft());
+    }
+  }, [state?.submittedAt, setDraft, editingOrderId]);
 
   useEffect(() => {
     if (state?.error) {
@@ -120,12 +138,28 @@ export function IntakeForm({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold tracking-tight">New order</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {editingOrderId ? "Edit pending order" : "New order"}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Creates a pending order for parcel creation and Pathao entry queues.
-          Your progress is saved on this device while you type.
+          {editingOrderId
+            ? "Save changes to this order. Fields match how the order was created (lazy vs full)."
+            : "Creates a pending order for parcel creation and Pathao entry queues. Your progress is saved on this device while you type."}
         </p>
       </div>
+      {editingOrderId && onClearEdit ? (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="touch-manipulation"
+            onClick={onClearEdit}
+          >
+            Cancel edit — back to new order
+          </Button>
+        </div>
+      ) : null}
       <form
         action={formAction}
         className="grid gap-6"
@@ -139,9 +173,16 @@ export function IntakeForm({
           name="imagesJson"
           value={JSON.stringify(draft.images)}
         />
-        <input type="hidden" name="lazyMode" value={lazyMode ? "1" : "0"} />
+        <input
+          type="hidden"
+          name="lazyMode"
+          value={effectiveLazy ? "1" : "0"}
+        />
+        {editingOrderId ? (
+          <input type="hidden" name="orderId" value={editingOrderId} />
+        ) : null}
 
-        {lazyMode ? (
+        {effectiveLazy ? (
           <>
             <input type="hidden" name="customerName" value="" />
             <input type="hidden" name="phone" value="" />
@@ -264,7 +305,7 @@ export function IntakeForm({
 
         <div className="grid gap-2">
           <Label>
-            Photos {lazyMode ? "(required)" : "(optional)"}
+            Photos {effectiveLazy ? "(required)" : "(optional)"}
           </Label>
           <p className="text-xs text-muted-foreground">
             Tap the shaded area — your tap goes straight to the file picker
@@ -375,12 +416,18 @@ export function IntakeForm({
           disabled={
             pending ||
             uploading ||
-            (lazyMode && draft.images.length === 0)
+            (effectiveLazy && draft.images.length === 0)
           }
           className="min-h-11 w-full touch-manipulation text-base"
           size="lg"
         >
-          {pending ? "Submitting…" : "Submit order"}
+          {pending
+            ? editingOrderId
+              ? "Saving…"
+              : "Submitting…"
+            : editingOrderId
+              ? "Save changes"
+              : "Submit order"}
         </Button>
       </form>
     </div>

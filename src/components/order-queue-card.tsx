@@ -4,8 +4,10 @@ import { CopyPathaoOrderButton } from "@/components/copy-pathao-order-button";
 import { useLazyMode } from "@/components/lazy-mode-provider";
 import { ParcelQueueAccordion } from "@/components/parcel-queue-accordion";
 import { QueueMarkDoneForm } from "@/components/queue-mark-done-form";
+import { WorkflowOrderEditForm } from "@/components/workflow-order-edit-form";
 import { OrderPhotoThumbnails } from "@/components/order-photo-thumbnails";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -27,15 +29,24 @@ function formatWhen(iso: string) {
   }
 }
 
+export type PathaoSelectProps = {
+  enabled: boolean;
+  selected: boolean;
+  onToggle: () => void;
+};
+
 export function OrderQueueCard({
   order,
   variant,
   showQueueActions = true,
+  pathaoSelect,
 }: {
   order: SerializedOrder;
   variant: "parcel" | "entry";
   /** Hide mark-done footer (e.g. read-only history modal). */
   showQueueActions?: boolean;
+  /** Bulk selection on Pathao entry when API mode is enabled */
+  pathaoSelect?: PathaoSelectProps;
 }) {
   const { lazyMode } = useLazyMode();
   const lazyView = shouldShowLazyOrderView(lazyMode, order);
@@ -49,21 +60,35 @@ export function OrderQueueCard({
         lazyView ? (
           <>
             <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
-              <div className="min-w-0 flex-1 space-y-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    Order description
-                  </p>
-                  <CardTitle className="min-w-0 whitespace-pre-wrap break-words text-xl font-semibold leading-snug tracking-tight">
-                    {order.orderDetails.trim() ? order.orderDetails : "—"}
-                  </CardTitle>
+              <div className="flex min-w-0 flex-1 gap-2">
+                <div className="min-w-0 flex-1 space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      Order description
+                    </p>
+                    <CardTitle className="min-w-0 whitespace-pre-wrap break-words text-xl font-semibold leading-snug tracking-tight">
+                      {order.orderDetails.trim() ? order.orderDetails : "—"}
+                    </CardTitle>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Note</p>
+                    <p className="whitespace-pre-wrap text-sm font-medium leading-snug text-foreground">
+                      {order.note.trim() ? order.note : "—"}
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Note</p>
-                  <p className="whitespace-pre-wrap text-sm font-medium leading-snug text-foreground">
-                    {order.note.trim() ? order.note : "—"}
-                  </p>
-                </div>
+                {pathaoSelect?.enabled ? (
+                  <Button
+                    type="button"
+                    variant={pathaoSelect.selected ? "default" : "outline"}
+                    size="sm"
+                    className="min-h-11 shrink-0 touch-manipulation sm:min-h-9"
+                    onClick={pathaoSelect.onToggle}
+                    aria-pressed={pathaoSelect.selected}
+                  >
+                    {pathaoSelect.selected ? "Selected" : "Select"}
+                  </Button>
+                ) : null}
               </div>
               <CopyPathaoOrderButton order={order} />
             </CardHeader>
@@ -89,15 +114,32 @@ export function OrderQueueCard({
                 </div>
               ) : null}
             </CardContent>
+            {showQueueActions ? (
+              <WorkflowOrderEditForm order={order} />
+            ) : null}
           </>
         ) : (
           <>
             <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="text-sm text-muted-foreground">Name</p>
-                <CardTitle className="min-w-0 break-words text-xl font-semibold leading-snug tracking-tight">
-                  {order.customerName}
-                </CardTitle>
+              <div className="flex min-w-0 flex-1 gap-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <CardTitle className="min-w-0 break-words text-xl font-semibold leading-snug tracking-tight">
+                    {order.customerName}
+                  </CardTitle>
+                </div>
+                {pathaoSelect?.enabled ? (
+                  <Button
+                    type="button"
+                    variant={pathaoSelect.selected ? "default" : "outline"}
+                    size="sm"
+                    className="min-h-11 shrink-0 touch-manipulation sm:min-h-9"
+                    onClick={pathaoSelect.onToggle}
+                    aria-pressed={pathaoSelect.selected}
+                  >
+                    {pathaoSelect.selected ? "Selected" : "Select"}
+                  </Button>
+                ) : null}
               </div>
               <CopyPathaoOrderButton order={order} />
             </CardHeader>
@@ -117,6 +159,9 @@ export function OrderQueueCard({
                 </span>
               </div>
             </CardContent>
+            {showQueueActions ? (
+              <WorkflowOrderEditForm order={order} />
+            ) : null}
           </>
         )
       ) : (
