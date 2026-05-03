@@ -1,6 +1,7 @@
 "use client";
 
 import { PageRefreshButton } from "@/components/page-refresh-button";
+import { SettingsProductStash } from "@/components/settings-product-stash";
 import { useLazyMode } from "@/components/lazy-mode-provider";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,8 @@ export function SettingsClient() {
           </div>
         </div>
       </section>
+
+      <SettingsProductStash />
     </div>
   );
 }

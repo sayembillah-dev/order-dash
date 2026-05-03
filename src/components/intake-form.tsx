@@ -9,6 +9,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { IntakeProductStashPicker } from "@/components/intake-product-stash-picker";
+import { uploadToCloudinary } from "@/lib/cloudinary-upload";
 import { convertImageFileToJpeg } from "@/lib/convert-image-to-jpeg";
 import {
   clearIntakeDraftStorage,
@@ -28,56 +30,6 @@ function isLikelyImageFile(file: File): boolean {
     return /\.(heic|heif|jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
   }
   return false;
-}
-
-async function uploadToCloudinary(file: File): Promise<string> {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-  if (!cloudName || !preset) {
-    throw new Error(
-      "Cloudinary is not configured. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.",
-    );
-  }
-  const body = new FormData();
-  body.append("file", file);
-  body.append("upload_preset", preset);
-  body.append("folder", "order-dash");
-
-  let res: Response;
-  try {
-    res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: "POST",
-        body,
-        mode: "cors",
-        credentials: "omit",
-      },
-    );
-  } catch (e) {
-    if (e instanceof TypeError) {
-      throw new Error(
-        "Could not reach Cloudinary — check your connection or try another network.",
-      );
-    }
-    throw e;
-  }
-
-  if (!res.ok) {
-    const text = await res.text();
-    let msg = text.slice(0, 220);
-    try {
-      const json = JSON.parse(text) as { error?: { message?: string } };
-      if (json?.error?.message) msg = json.error.message;
-    } catch {
-      /* not JSON */
-    }
-    throw new Error(msg || `Upload failed (${res.status})`);
-  }
-
-  const data = (await res.json()) as { secure_url?: string };
-  if (!data.secure_url) throw new Error("Invalid Cloudinary response");
-  return data.secure_url;
 }
 
 export function IntakeForm({
@@ -152,6 +104,17 @@ export function IntakeForm({
   function clearAllImages() {
     setUploadError(null);
     setDraft((d) => ({ ...d, images: [] }));
+  }
+
+  function toggleStashUrl(url: string) {
+    setUploadError(null);
+    setDraft((d) => {
+      const has = d.images.includes(url);
+      if (has) {
+        return { ...d, images: d.images.filter((u) => u !== url) };
+      }
+      return { ...d, images: [...d.images, url] };
+    });
   }
 
   return (
@@ -309,6 +272,13 @@ export function IntakeForm({
             JPEG (including HEIC from iPhone) before upload; max 8MB per photo
             after conversion.
           </p>
+
+          <IntakeProductStashPicker
+            selectedUrls={draft.images}
+            onToggleUrl={toggleStashUrl}
+            disabled={pending || uploading}
+          />
+
           <div className="flex flex-wrap items-center gap-3">
             {/* Invisible file input on top so taps hit the native input (fixes many mobile WebKit bugs). */}
             <div
