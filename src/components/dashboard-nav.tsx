@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
+import { QueueTodayHistoryDialog } from "@/components/queue-today-history-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
@@ -84,12 +85,19 @@ export function DashboardNav() {
           </SheetContent>
         </Sheet>
 
-        <Link
-          href="/intake"
-          className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight sm:text-sm md:flex-none"
-        >
-          Order Dash
-        </Link>
+        <div className="flex min-w-0 flex-1 items-center gap-1 md:flex-none">
+          <Link
+            href="/intake"
+            className="min-w-0 truncate text-base font-semibold tracking-tight sm:text-sm"
+          >
+            Order Dash
+          </Link>
+          {(pathname === "/parcel" || pathname === "/entry") && (
+            <QueueTodayHistoryDialog
+              variant={pathname === "/parcel" ? "parcel" : "entry"}
+            />
+          )}
+        </div>
 
         <nav
           className="hidden flex-1 flex-wrap items-center justify-center gap-1 md:flex lg:gap-2"

@@ -5,6 +5,8 @@ import { z } from "zod";
 import { requireAuth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/lib/models/Order";
+import { getUtcDayBounds } from "@/lib/utc-day-bounds";
+import { serializeOrder, type SerializedOrder } from "@/lib/serialize-order";
 
 const imageUrlSchema = z.string().url();
 
@@ -130,7 +132,10 @@ export async function completeParcelCreation(formData: FormData): Promise<void> 
   await requireAuth();
   const id = orderIdSchema.parse(String(formData.get("orderId") ?? ""));
   await connectDB();
-  await Order.findByIdAndUpdate(id, { parcelCreationDone: true });
+  await Order.findByIdAndUpdate(id, {
+    parcelCreationDone: true,
+    parcelCreationCompletedAt: new Date(),
+  });
   revalidatePath("/parcel");
   revalidatePath("/archive");
 }
@@ -139,7 +144,10 @@ export async function completePathaoEntry(formData: FormData): Promise<void> {
   await requireAuth();
   const id = orderIdSchema.parse(String(formData.get("orderId") ?? ""));
   await connectDB();
-  await Order.findByIdAndUpdate(id, { pathaoEntryDone: true });
+  await Order.findByIdAndUpdate(id, {
+    pathaoEntryDone: true,
+    pathaoEntryCompletedAt: new Date(),
+  });
   revalidatePath("/entry");
   revalidatePath("/archive");
 }
@@ -215,7 +223,10 @@ export async function reopenParcelStep(formData: FormData): Promise<void> {
   await requireAuth();
   const id = orderIdSchema.parse(String(formData.get("orderId") ?? ""));
   await connectDB();
-  await Order.findByIdAndUpdate(id, { parcelCreationDone: false });
+  await Order.findByIdAndUpdate(id, {
+    $set: { parcelCreationDone: false },
+    $unset: { parcelCreationCompletedAt: "" },
+  });
   revalidatePath("/parcel");
   revalidatePath("/archive");
 }
@@ -224,7 +235,10 @@ export async function reopenPathaoStep(formData: FormData): Promise<void> {
   await requireAuth();
   const id = orderIdSchema.parse(String(formData.get("orderId") ?? ""));
   await connectDB();
-  await Order.findByIdAndUpdate(id, { pathaoEntryDone: false });
+  await Order.findByIdAndUpdate(id, {
+    $set: { pathaoEntryDone: false },
+    $unset: { pathaoEntryCompletedAt: "" },
+  });
   revalidatePath("/entry");
   revalidatePath("/archive");
 }
@@ -234,10 +248,51 @@ export async function reopenBothSteps(formData: FormData): Promise<void> {
   const id = orderIdSchema.parse(String(formData.get("orderId") ?? ""));
   await connectDB();
   await Order.findByIdAndUpdate(id, {
-    pathaoEntryDone: false,
-    parcelCreationDone: false,
+    $set: {
+      pathaoEntryDone: false,
+      parcelCreationDone: false,
+    },
+    $unset: {
+      pathaoEntryCompletedAt: "",
+      parcelCreationCompletedAt: "",
+    },
   });
   revalidatePath("/parcel");
   revalidatePath("/entry");
   revalidatePath("/archive");
+}
+
+/**
+ * Parcel jobs marked “Order created” today (UTC): parcel step completed and
+ * removed from the parcel queue. Requires `parcelCreationCompletedAt`.
+ */
+export async function getTodayParcelStepsCompleted(): Promise<
+  SerializedOrder[]
+> {
+  await requireAuth();
+  await connectDB();
+  const { start, end } = getUtcDayBounds();
+  const docs = await Order.find({
+    parcelCreationDone: true,
+    parcelCreationCompletedAt: { $gte: start, $lt: end },
+  })
+    .sort({ parcelCreationCompletedAt: -1 })
+    .lean();
+  return docs.map((o) => serializeOrder(o));
+}
+
+/** Pathao entries marked complete today (UTC); requires `pathaoEntryCompletedAt`. */
+export async function getTodayPathaoEntriesCompleted(): Promise<
+  SerializedOrder[]
+> {
+  await requireAuth();
+  await connectDB();
+  const { start, end } = getUtcDayBounds();
+  const docs = await Order.find({
+    pathaoEntryDone: true,
+    pathaoEntryCompletedAt: { $gte: start, $lt: end },
+  })
+    .sort({ pathaoEntryCompletedAt: -1 })
+    .lean();
+  return docs.map((o) => serializeOrder(o));
 }

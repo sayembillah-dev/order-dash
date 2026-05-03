@@ -18,8 +18,12 @@ const OrderSchema = new Schema(
     lazySubmission: { type: Boolean, default: false },
     /** Pathao / digital entry completed */
     pathaoEntryDone: { type: Boolean, default: false },
+    /** When Pathao entry was marked complete (for “today’s history”) */
+    pathaoEntryCompletedAt: { type: Date, required: false },
     /** Physical parcel creation completed */
     parcelCreationDone: { type: Boolean, default: false },
+    /** When parcel step was marked complete */
+    parcelCreationCompletedAt: { type: Date, required: false },
     images: { type: [String], default: [] },
   },
   { timestamps: true }

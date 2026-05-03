@@ -30,9 +30,12 @@ function formatWhen(iso: string) {
 export function OrderQueueCard({
   order,
   variant,
+  showQueueActions = true,
 }: {
   order: SerializedOrder;
   variant: "parcel" | "entry";
+  /** Hide mark-done footer (e.g. read-only history modal). */
+  showQueueActions?: boolean;
 }) {
   const { lazyMode } = useLazyMode();
   const lazyView = shouldShowLazyOrderView(lazyMode, order);
@@ -134,13 +137,15 @@ export function OrderQueueCard({
         </>
       )}
 
-      <CardFooter className="mt-auto border-t border-border/80 bg-muted/20 pt-4">
-        <QueueMarkDoneForm
-          variant={variant}
-          orderId={order._id}
-          label={label}
-        />
-      </CardFooter>
+      {showQueueActions ? (
+        <CardFooter className="mt-auto border-t border-border/80 bg-muted/20 pt-4">
+          <QueueMarkDoneForm
+            variant={variant}
+            orderId={order._id}
+            label={label}
+          />
+        </CardFooter>
+      ) : null}
     </Card>
   );
 }
