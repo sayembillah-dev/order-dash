@@ -4,13 +4,16 @@ import { createPathaoBulkOrders, type PathaoBulkState } from "@/app/actions/path
 import { OrderQueueCard } from "@/components/order-queue-card";
 import { usePathaoApi } from "@/components/pathao-api-provider";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { orderMatchesQuery } from "@/lib/order-matches-query";
 import type { SerializedOrder } from "@/lib/serialize-order";
 import { Loader2 } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export function EntryPageClient({ orders }: { orders: SerializedOrder[] }) {
   const { pathaoApiEnabled } = usePathaoApi();
+  const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkState, bulkAction, bulkPending] = useActionState(
     createPathaoBulkOrders,
@@ -40,8 +43,21 @@ export function EntryPageClient({ orders }: { orders: SerializedOrder[] }) {
     });
   }
 
+  const filtered = useMemo(
+    () => orders.filter((o) => orderMatchesQuery(o, query)),
+    [orders, query],
+  );
+
   return (
     <>
+      <Input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search by name or last 4 digits"
+        aria-label="Search orders"
+      />
+
       {pathaoApiEnabled ? (
         <div className="flex flex-col gap-2 rounded-lg border border-border/80 bg-muted/20 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
           <p className="text-sm text-muted-foreground">
@@ -70,25 +86,31 @@ export function EntryPageClient({ orders }: { orders: SerializedOrder[] }) {
         </div>
       ) : null}
 
-      <ul className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-        {orders.map((order) => (
-          <li key={order._id}>
-            <OrderQueueCard
-              order={order}
-              variant="entry"
-              pathaoSelect={
-                pathaoApiEnabled
-                  ? {
-                      enabled: true,
-                      selected: selected.has(order._id),
-                      onToggle: () => toggle(order._id),
-                    }
-                  : undefined
-              }
-            />
-          </li>
-        ))}
-      </ul>
+      {filtered.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+          No matches.
+        </p>
+      ) : (
+        <ul className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+          {filtered.map((order) => (
+            <li key={order._id}>
+              <OrderQueueCard
+                order={order}
+                variant="entry"
+                pathaoSelect={
+                  pathaoApiEnabled
+                    ? {
+                        enabled: true,
+                        selected: selected.has(order._id),
+                        onToggle: () => toggle(order._id),
+                      }
+                    : undefined
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

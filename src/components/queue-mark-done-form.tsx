@@ -9,6 +9,17 @@ import {
 } from "@/app/actions/pathao";
 import { FormSubmitToast } from "@/components/form-submit-toast";
 import { usePathaoApi } from "@/components/pathao-api-provider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
@@ -65,17 +76,39 @@ export function QueueMarkDoneForm({
 
   if (variant === "parcel") {
     return (
-      <form action={completeParcelCreation} className="w-full" suppressHydrationWarning>
-        <FormSubmitToast message="Marked parcel step complete" />
-        <input type="hidden" name="orderId" value={orderId} />
-        <Button
-          type="submit"
-          className="min-h-11 w-full touch-manipulation sm:w-auto"
-          size="lg"
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <Button
+              type="button"
+              className="min-h-11 w-full touch-manipulation sm:w-auto"
+              size="lg"
+            />
+          }
         >
           {label}
-        </Button>
-      </form>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Did you create the parcel?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <form
+            action={completeParcelCreation}
+            className="w-full"
+            suppressHydrationWarning
+          >
+            <FormSubmitToast message="Marked parcel step complete" />
+            <input type="hidden" name="orderId" value={orderId} />
+            <AlertDialogFooter>
+              <AlertDialogCancel type="button">No</AlertDialogCancel>
+              <AlertDialogAction type="submit">Confirm</AlertDialogAction>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
     );
   }
 
@@ -93,7 +126,7 @@ export function QueueMarkDoneForm({
         className={cn(
           "min-h-11 w-full touch-manipulation gap-2 sm:w-auto",
           pathaoApiEnabled &&
-            "border-transparent bg-destructive text-white hover:bg-destructive/90 focus-visible:border-destructive focus-visible:ring-destructive/30 dark:bg-destructive dark:text-white dark:hover:bg-destructive/90",
+          "border-transparent bg-destructive text-white hover:bg-destructive/90 focus-visible:border-destructive focus-visible:ring-destructive/30 dark:bg-destructive dark:text-white dark:hover:bg-destructive/90",
         )}
         size="lg"
       >

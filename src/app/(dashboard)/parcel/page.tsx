@@ -1,4 +1,4 @@
-import { OrderQueueCard } from "@/components/order-queue-card";
+import { ParcelPageClient } from "@/components/parcel-page-client";
 import { PageRefreshButton } from "@/components/page-refresh-button";
 import { PendingQueueSummary } from "@/components/pending-queue-summary";
 import { connectDB } from "@/lib/mongodb";
@@ -34,13 +34,7 @@ export default async function ParcelPage() {
           automatically.
         </p>
       ) : (
-        <ul className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-          {orders.map((order) => (
-            <li key={order._id}>
-              <OrderQueueCard order={order} variant="parcel" />
-            </li>
-          ))}
-        </ul>
+        <ParcelPageClient orders={orders} />
       )}
     </div>
   );

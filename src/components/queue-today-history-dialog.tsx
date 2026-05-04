@@ -14,10 +14,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { orderMatchesQuery } from "@/lib/order-matches-query";
 import { cn } from "@/lib/utils";
 import type { SerializedOrder } from "@/lib/serialize-order";
 import { History, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function QueueTodayHistoryDialog({
   variant,
@@ -28,6 +30,7 @@ export function QueueTodayHistoryDialog({
   const [orders, setOrders] = useState<SerializedOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,6 +53,11 @@ export function QueueTodayHistoryDialog({
     if (!open) return;
     queueMicrotask(() => void load());
   }, [open, load]);
+
+  const filtered = useMemo(
+    () => orders.filter((o) => orderMatchesQuery(o, query)),
+    [orders, query],
+  );
 
   const title =
     variant === "parcel"
@@ -90,6 +98,33 @@ export function QueueTodayHistoryDialog({
         <DialogHeader className="shrink-0 border-b bg-background px-4 py-4 text-left sm:px-6">
           <DialogTitle className="text-lg">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
+          {!loading && !error ? (
+            <p className="mt-3 text-sm font-medium text-foreground">
+              {variant === "parcel" ? (
+                <>
+                  Total parcel count:{" "}
+                  <span className="tabular-nums">{orders.length}</span>
+                </>
+              ) : (
+                <>
+                  Total Pathao completions:{" "}
+                  <span className="tabular-nums">{orders.length}</span>
+                </>
+              )}
+            </p>
+          ) : null}
+
+          {!loading && !error && orders.length > 0 ? (
+            <div className="mt-3">
+              <Input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or last 4 digits"
+                aria-label="Search history"
+              />
+            </div>
+          ) : null}
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
@@ -106,9 +141,13 @@ export function QueueTodayHistoryDialog({
                 ? "No parcel jobs were marked complete today (UTC) yet."
                 : "No Pathao entries were marked complete today (UTC) yet."}
             </p>
+          ) : filtered.length === 0 ? (
+            <p className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground">
+              No matches.
+            </p>
           ) : (
             <ul className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-              {orders.map((order) => (
+              {filtered.map((order) => (
                 <li key={order._id}>
                   <OrderQueueCard
                     order={order}
