@@ -2,9 +2,22 @@
 
 import Image from "next/image";
 import {
+  deleteOrder,
   updateWorkflowOrder,
   type CreateOrderState,
 } from "@/app/actions/orders";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { FormSubmitToast } from "@/components/form-submit-toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +44,13 @@ function isLikelyImageFile(file: File): boolean {
 }
 
 /** Inline edit for orders still in parcel / Pathao queues (entry cards). */
-export function WorkflowOrderEditForm({ order }: { order: SerializedOrder }) {
+export function WorkflowOrderEditForm({
+  order,
+  showDelete = false,
+}: {
+  order: SerializedOrder;
+  showDelete?: boolean;
+}) {
   const router = useRouter();
   const [draft, setDraft] = useState<IntakeDraft>(() =>
     serializedOrderToIntakeDraft(order),
@@ -355,6 +374,42 @@ export function WorkflowOrderEditForm({ order }: { order: SerializedOrder }) {
           >
             {pending ? "Saving…" : "Save changes"}
           </Button>
+
+          {showDelete ? (
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="min-h-11 w-full touch-manipulation"
+                    disabled={pending || uploading}
+                  />
+                }
+              >
+                Delete order
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This cannot be undone. The order will be permanently removed
+                    from all queues and history.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <form action={deleteOrder} suppressHydrationWarning>
+                  <FormSubmitToast message="Order deleted" />
+                  <input type="hidden" name="orderId" value={order._id} />
+                  <AlertDialogFooter>
+                    <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+                    <AlertDialogAction type="submit" variant="destructive">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </form>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
         </form>
       ) : null}
     </div>

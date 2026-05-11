@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { LazyModeProvider } from "@/components/lazy-mode-provider";
 import { PathaoApiProvider } from "@/components/pathao-api-provider";
+import { OrderEventsListener } from "@/components/order-events-listener";
 
 export default async function DashboardLayout({
   children,
@@ -13,6 +14,7 @@ export default async function DashboardLayout({
   return (
     <LazyModeProvider>
       <PathaoApiProvider>
+        <OrderEventsListener />
         <div className="flex min-h-screen flex-col">
           <DashboardNav />
           <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-safe-x py-6 pb-safe-b sm:px-6">

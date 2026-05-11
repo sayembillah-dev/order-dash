@@ -115,7 +115,7 @@ export function OrderQueueCard({
               ) : null}
             </CardContent>
             {showQueueActions ? (
-              <WorkflowOrderEditForm order={order} />
+              <WorkflowOrderEditForm order={order} showDelete />
             ) : null}
           </>
         ) : (
@@ -160,7 +160,7 @@ export function OrderQueueCard({
               </div>
             </CardContent>
             {showQueueActions ? (
-              <WorkflowOrderEditForm order={order} />
+              <WorkflowOrderEditForm order={order} showDelete />
             ) : null}
           </>
         )
