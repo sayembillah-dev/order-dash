@@ -12,6 +12,7 @@ import {
   pathaoCreateBulkOrders,
   pathaoCreateOrder,
 } from "@/lib/pathao/orders";
+import { isValidPhone } from "@/lib/phone";
 
 const orderIdSchema = z.string().refine(
   (id) => /^[a-f\d]{24}$/i.test(id),
@@ -45,6 +46,9 @@ function shippingValidationError(order: {
   const addr = (order.address ?? "").trim();
   if (!name || !phone || !addr) {
     return "Add customer name, phone, and address before sending to Pathao.";
+  }
+  if (!isValidPhone(phone)) {
+    return "Phone number must be exactly 11 digits before sending to Pathao.";
   }
   return null;
 }

@@ -98,8 +98,8 @@ export function OrderQueueCard({
                   <p className="text-muted-foreground">Photos</p>
                   <OrderPhotoThumbnails
                     images={order.images}
-                    listClassName="flex flex-wrap gap-2"
-                    thumbnailClassName="h-[72px] w-[72px] rounded-md"
+                    listClassName="grid grid-cols-3 gap-2"
+                    thumbnailClassName="aspect-square w-full rounded-md"
                     thumbWidth={72}
                     thumbHeight={72}
                   />

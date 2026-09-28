@@ -48,6 +48,21 @@ export function EntryPageClient({ orders }: { orders: SerializedOrder[] }) {
     [orders, query],
   );
 
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((o) => selected.has(o._id));
+
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        for (const o of filtered) next.delete(o._id);
+      } else {
+        for (const o of filtered) next.add(o._id);
+      }
+      return next;
+    });
+  }
+
   return (
     <>
       <Input
@@ -63,26 +78,38 @@ export function EntryPageClient({ orders }: { orders: SerializedOrder[] }) {
           <p className="text-sm text-muted-foreground">
             Select orders below, then create a bulk shipment in Pathao.
           </p>
-          <form action={bulkAction} className="flex shrink-0 flex-wrap items-center gap-2">
-            <input
-              type="hidden"
-              name="orderIdsJson"
-              value={JSON.stringify([...selected])}
-            />
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
-              type="submit"
+              type="button"
               size="lg"
-              variant="secondary"
-              disabled={bulkPending || selected.size === 0}
+              variant="outline"
+              disabled={filtered.length === 0}
+              onClick={toggleSelectAll}
               className="min-h-11 touch-manipulation"
             >
-              {bulkPending ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : null}
-              Create bulk orders
-              {selected.size > 0 ? ` (${selected.size})` : ""}
+              {allFilteredSelected ? "Clear selection" : "Select all"}
             </Button>
-          </form>
+            <form action={bulkAction} className="flex shrink-0 items-center">
+              <input
+                type="hidden"
+                name="orderIdsJson"
+                value={JSON.stringify([...selected])}
+              />
+              <Button
+                type="submit"
+                size="lg"
+                variant="secondary"
+                disabled={bulkPending || selected.size === 0}
+                className="min-h-11 touch-manipulation"
+              >
+                {bulkPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : null}
+                Create bulk orders
+                {selected.size > 0 ? ` (${selected.size})` : ""}
+              </Button>
+            </form>
+          </div>
         </div>
       ) : null}
 

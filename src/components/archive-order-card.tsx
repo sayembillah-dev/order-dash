@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { OrderPhotoThumbnails } from "@/components/order-photo-thumbnails";
+import { sanitizePhoneInput } from "@/lib/phone";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,9 +102,17 @@ function EditOrderForm({
           <Input
             id={`phone-${order._id}`}
             name="phone"
+            type="tel"
+            inputMode="numeric"
+            pattern="\d{11}"
+            maxLength={11}
+            title="Exactly 11 digits, e.g. 01568254672"
             defaultValue={order.phone}
             required
             disabled={pending}
+            onChange={(e) => {
+              e.currentTarget.value = sanitizePhoneInput(e.currentTarget.value);
+            }}
           />
         </div>
       </div>
@@ -269,8 +278,8 @@ export function ArchiveOrderCard({ order }: { order: SerializedOrder }) {
             <p className="mb-2 font-medium text-foreground">Photos</p>
             <OrderPhotoThumbnails
               images={order.images}
-              listClassName="flex flex-wrap gap-2"
-              thumbnailClassName="h-[72px] w-[72px] rounded-md"
+              listClassName="grid grid-cols-3 gap-2"
+              thumbnailClassName="aspect-square w-full rounded-md"
               thumbWidth={72}
               thumbHeight={72}
             />

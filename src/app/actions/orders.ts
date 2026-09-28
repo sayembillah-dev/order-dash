@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/lib/models/Order";
 import { getUtcDayBounds } from "@/lib/utc-day-bounds";
+import { PHONE_REGEX, PHONE_VALIDATION_MESSAGE } from "@/lib/phone";
 import { serializeOrder, type SerializedOrder } from "@/lib/serialize-order";
 
 const imageUrlSchema = z.string().url();
@@ -33,7 +34,11 @@ const optionalTrimmedDetails = z.preprocess(
 
 const createOrderSchema = z.object({
   customerName: z.string().trim().min(1, "Customer name is required"),
-  phone: z.string().trim().min(1, "Phone is required"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Phone is required")
+    .regex(PHONE_REGEX, PHONE_VALIDATION_MESSAGE),
   address: z.string().trim().min(1, "Address is required"),
   orderDetails: optionalTrimmedDetails,
   price: z.coerce.number().nonnegative("Price must be zero or positive"),
@@ -263,7 +268,11 @@ export async function completePathaoEntry(formData: FormData): Promise<void> {
 const updateArchiveSchema = z.object({
   orderId: orderIdSchema,
   customerName: z.string().trim().min(1),
-  phone: z.string().trim().min(1),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Phone is required")
+    .regex(PHONE_REGEX, PHONE_VALIDATION_MESSAGE),
   address: z.string().trim().min(1),
   orderDetails: optionalTrimmedDetails,
   note: optionalTrimmedDetails,

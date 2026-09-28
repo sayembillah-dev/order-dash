@@ -1,9 +1,18 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
+import { PHONE_REGEX, PHONE_VALIDATION_MESSAGE } from "@/lib/phone";
 
 const OrderSchema = new Schema(
   {
     customerName: { type: String, default: "", trim: true },
-    phone: { type: String, default: "", trim: true },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+      validate: {
+        validator: (v: string) => v === "" || PHONE_REGEX.test(v),
+        message: PHONE_VALIDATION_MESSAGE,
+      },
+    },
     address: { type: String, default: "", trim: true },
     orderDetails: {
       type: String,

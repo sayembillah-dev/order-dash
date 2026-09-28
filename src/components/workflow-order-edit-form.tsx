@@ -29,6 +29,7 @@ import { serializedOrderToIntakeDraft } from "@/lib/order-draft-from-serialized"
 import type { IntakeDraft } from "@/lib/intake-draft";
 import type { SerializedOrder } from "@/lib/serialize-order";
 import { cn } from "@/lib/utils";
+import { sanitizePhoneInput } from "@/lib/phone";
 import { Loader2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
@@ -223,11 +224,18 @@ export function WorkflowOrderEditForm({
                     id={`edit-${order._id}-phone`}
                     name="phone"
                     type="tel"
+                    inputMode="numeric"
+                    pattern="\d{11}"
+                    maxLength={11}
+                    title="Exactly 11 digits, e.g. 01568254672"
                     required
                     disabled={pending}
                     value={draft.phone}
                     onChange={(e) =>
-                      setDraft((d) => ({ ...d, phone: e.target.value }))
+                      setDraft((d) => ({
+                        ...d,
+                        phone: sanitizePhoneInput(e.target.value),
+                      }))
                     }
                   />
                 </div>
@@ -334,19 +342,19 @@ export function WorkflowOrderEditForm({
               <p className="text-sm text-destructive">{uploadError}</p>
             ) : null}
             {draft.images.length > 0 ? (
-              <ul className="flex flex-wrap gap-3 pt-1">
+              <ul className="grid grid-cols-3 gap-3 pt-1">
                 {draft.images.map((url, index) => (
                   <li
                     key={`${index}-${url}`}
-                    className="relative inline-block touch-manipulation"
+                    className="relative touch-manipulation"
                   >
                     <Image
                       src={url}
                       alt=""
-                      width={56}
-                      height={56}
+                      width={200}
+                      height={200}
                       unoptimized
-                      className="size-14 rounded-md border object-cover"
+                      className="aspect-square w-full rounded-md border object-cover"
                     />
                     <button
                       type="button"

@@ -133,9 +133,8 @@ export function ParcelQueueAccordion({ order }: { order: SerializedOrder }) {
                 </div>
                 <OrderPhotoThumbnails
                   images={order.images}
-                  listClassName="-mx-0.5 flex gap-3 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible"
-                  itemClassName="shrink-0 snap-start"
-                  thumbnailClassName="h-28 w-28 rounded-lg sm:h-32 sm:w-32"
+                  listClassName="grid grid-cols-3 gap-3"
+                  thumbnailClassName="aspect-square w-full rounded-lg"
                   thumbWidth={128}
                   thumbHeight={128}
                 />
